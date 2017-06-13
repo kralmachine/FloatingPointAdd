@@ -1,0 +1,96 @@
+module FPA32(sum,a_original,b_original,start1,start2,yukle);
+   input [31:0] a_original, b_original;
+   output [31:0] sum;
+	input start1,start2,yukle;
+   reg           sumneg;
+   reg [7:0]     sumexp;
+   reg [25:0]    sumsig;
+   assign        sum[31]    = sumneg;
+   assign        sum[30:23] = sumexp;
+   assign        sum[22:0]  = sumsig;
+   reg [31:0]    a, b;
+   reg [25:0]    asig, bsig;
+   reg [7:0]     aexp, bexp;
+   reg           aneg, bneg;
+   reg [7:0]    diff;
+
+   always @( a_original or b_original )
+     begin
+	  
+		if(start1)
+		begin
+			a=a_original;
+			aneg = a[31];
+			aexp = a[30:23];
+		end
+		
+		if(start2)
+		begin
+			b=b_original;
+			bneg = b[31];
+         bexp = b[30:23];
+		end
+          
+			if(yukle)
+			begin
+			
+			
+			 
+        asig = { 2'b0,    aexp ? 1'b1 : 1'b0,    a[22:0] };
+        bsig = { 2'b0, bexp ? 1'b1 : 1'b0, b[22:0] };
+
+     
+        diff = aexp - bexp;
+        bsig = bsig >> diff;
+       
+        if ( aneg ) asig = -asig;
+        if ( bneg ) bsig = -bsig;
+
+        sumsig = asig + bsig;
+
+        sumneg = sumsig[25];
+        if ( sumneg ) sumsig = -sumsig;
+
+       
+        if ( sumsig[25] ) begin
+         
+
+           sumexp = aexp + 1;
+           sumsig = sumsig >> 1;
+
+        end else if ( sumsig ) begin:A
+    
+           integer pos, adj, i;
+
+         
+           pos = 0;
+           for (i = 23; i >= 0; i = i - 1 ) 
+				if ( !pos && sumsig[i] ) pos = i;
+
+        
+           adj = 23 - pos;
+           if ( aexp < adj ) begin
+            
+              sumexp = 0;
+              sumsig = 0;
+              sumneg = 0;
+
+           end else begin
+           
+
+              sumexp = aexp - adj;
+              sumsig = sumsig << adj;
+
+           end
+
+        end else begin
+          
+
+           sumexp = 0;
+           sumsig = 0;
+
+        end
+
+     end
+	 end
+endmodule
